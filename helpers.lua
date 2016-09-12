@@ -30,7 +30,7 @@ end
 
 -- Get the index of a value in a table
 function index_of(t,val)
-    for k,v in ipairs(t) do 
+    for k,v in ipairs(t) do
         if v == val then return k end
     end
 end
@@ -47,6 +47,46 @@ function string.ends(String, End)
    return End=='' or string.sub(String, -string.len(End)) == End
 end
 
+-- Return a random string
+function string.random(Length, CharSet)
+   -- Length (number)
+   -- CharSet (string, optional); e.g. %l%d for lower case letters and digits
+   math.randomseed( os.time() )
+   local Chars = {}
+   for Loop = 0, 255 do
+      Chars[Loop+1] = string.char(Loop)
+   end
+   local String = table.concat(Chars)
+
+   local Built = {['.'] = Chars}
+
+   local AddLookup = function(CharSet)
+      local Substitute = string.gsub(String, '[^'..CharSet..']', '')
+      local Lookup = {}
+      for Loop = 1, string.len(Substitute) do
+          Lookup[Loop] = string.sub(Substitute, Loop, Loop)
+      end
+      Built[CharSet] = Lookup
+
+      return Lookup
+   end
+
+   local CharSet = CharSet or '.'
+
+   if CharSet == '' then
+      return ''
+   else
+      local Result = {}
+      local Lookup = Built[CharSet] or AddLookup(CharSet)
+      local Range = table.getn(Lookup)
+
+      for Loop = 1,Length do
+         Result[Loop] = Lookup[math.random(1, Range)]
+      end
+
+      return table.concat(Result)
+   end
+end
 
 -- Find a string by its translate key in the right language
 function t(key)
@@ -118,7 +158,7 @@ function set_auth_cookie(user, domain)
     local cookie_str = "; Domain=."..domain..
                        "; Path=/"..
                        "; Max-Age="..maxAge
-    
+
     ngx.header["Set-Cookie"] = {
         "SSOwAuthUser="..user..cookie_str,
         "SSOwAuthHash="..hash..cookie_str,
@@ -554,7 +594,13 @@ function edit_user()
 
                     -- Open the LDAP connection
                     local ldap = lualdap.open_simple(conf["ldap_host"], dn, args.currentpassword)
-                    local password = "{SHA}"..ngx.encode_base64(ngx.sha1_bin(args.newpassword))
+
+                    local salt = string.format("%q", "$6$"..string.random(12,"%u%d"))
+                    local password = string.format("%q", args.newpassword)
+                    -- sha512 --
+                    local handle = io.popen("python -c 'import crypt; print crypt.crypt("..password..", "..salt..")' ")
+                    password = "{CRYPT}"..handle:read("*a"):sub(1, -2)
+                    handle:close()
 
                     -- Modify the LDAP information
                     if ldap:modify(dn, {'=', userPassword = password }) then
