@@ -98,6 +98,15 @@ then
                 return hlp.redirect(conf.portal_url)
             end
 
+            -- Internal redirect if the login page followed an internal redirect
+            if hlp.string.starts(back_url, '/') then
+                ngx.log(ngx.DEBUG, "INTERNAL REDIRECT BACK URL REQUESTED")
+                return hlp.exec(back_url)
+            end
+
+            -- Normal redirect in other cases
+            ngx.log(ngx.DEBUG, "REDIRECT BACK URL REQUESTED")
+
             -- Get managed domains
             conf = config.get_config()
             local managed_domain = false
@@ -118,7 +127,6 @@ then
                 return hlp.redirect(conf.portal_url)
             end
 
-
             -- In case the `back_url` is not on the same domain than the
             -- current one, create a redirection with a CDA key
             local ngx_host_escaped = ngx.var.host:gsub("-", "%%-") -- escape dash for pattern matching
@@ -133,9 +141,7 @@ then
                 back_url = back_url.."sso_login="..cda_key
             end
 
-            ngx.log(ngx.DEBUG, "REDIRECT BACK URL REQUESTED")
             return hlp.redirect(back_url)
-
 
         -- In case we want to serve portal login or assets for portal, just
         -- serve it
@@ -158,22 +164,22 @@ then
 
     -- `POST` method is basically use to achieve editing operations
     elseif ngx.var.request_method == "POST" then
+        if not hlp.string.ends(ngx.var.uri, conf["portal_path"].."password.html")
+        and not hlp.string.ends(ngx.var.uri, conf["portal_path"].."edit.html")
+        then
+           return hlp.login()
+        else
 
-        -- CSRF protection, only proceed if we are editing from the same
-        -- domain
-        if hlp.string.starts(ngx.var.http_referer, conf.portal_url) then
-            if hlp.string.ends(ngx.var.uri, conf["portal_path"].."password.html")
-            or hlp.string.ends(ngx.var.uri, conf["portal_path"].."edit.html")
-            then
+            -- CSRF protection, only proceed if we are editing from the same
+            -- domain
+            if hlp.string.starts(ngx.var.http_referer, conf.portal_url) then
                return hlp.edit_user()
             else
-               return hlp.login()
+                -- Redirect to portal
+                hlp.flash("fail", hlp.t("please_login_from_portal"))
+                ngx.log(ngx.DEBUG, "REDIRECT POST CATCHALL…")
+                return hlp.redirect(conf.portal_url)
             end
-        else
-            -- Redirect to portal
-            hlp.flash("fail", hlp.t("please_login_from_portal"))
-            ngx.log(ngx.DEBUG, "REDIRECT POST CATCHALL…")
-            return hlp.redirect(conf.portal_url)
         end
     end
 end
@@ -377,7 +383,7 @@ if auth_header then
 
         -- If user has no access to this URL, redirect him to the portal
         if not hlp.has_access(user) then
-            ngx.log(ngx.DEBUG, "REDIRECT BASIC AUTH OK")
+            ngx.log(ngx.DEBUG, "REDIRECT BASIC AUTH KO")
             return hlp.redirect(conf.portal_url)
         end
 
@@ -394,6 +400,5 @@ end
 --
 
 hlp.flash("info", hlp.t("please_login"))
-local back_url = ngx.var.scheme .. "://" .. ngx.var.host .. ngx.var.uri .. hlp.uri_args_string()
 ngx.log(ngx.DEBUG, "REDIRECT BY DEFAULT")
-return hlp.redirect(conf.portal_url.."?r="..ngx.encode_base64(back_url))
+return hlp.to_login()

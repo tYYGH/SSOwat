@@ -330,8 +330,7 @@ function set_headers(user)
     -- logging.
     if not cache:get(user.."-password") then
         flash("info", t("please_login"))
-        local back_url = ngx.var.scheme .. "://" .. ngx.var.host .. ngx.var.uri .. uri_args_string()
-        return redirect(conf.portal_url.."?r="..ngx.encode_base64(back_url))
+        return to_login()
     end
 
     -- If the user information is not in cache, open an LDAP connection and
@@ -841,6 +840,16 @@ function hash_password(password)
     return hashed_password
 end
 
+-- Return the redirect to the login page. The redirect is internal if the
+-- current uri is the result of an internal redirect and the host matches ours
+function to_login()
+    if ngx.req.is_internal() and ngx.var.host == conf["portal_domain"] then
+        return exec(conf["portal_path"].."?r="..ngx.encode_base64(ngx.var.uri..uri_args_string()))
+    else
+        return redirect(conf.portal_url.."?r="..ngx.encode_base64(ngx.var.scheme.."://"..ngx.var.host..ngx.var.uri..uri_args_string()))
+    end
+end
+
 -- Compute the user login POST request
 -- It authenticates the user against the LDAP base then redirects to the portal
 function login()
@@ -864,9 +873,9 @@ function login()
     -- Forward the `r` URI argument if it exists to redirect
     -- the user properly after a successful login.
     if uri_args.r then
-        return redirect(conf.portal_url.."?r="..uri_args.r)
+        return exec(conf["portal_path"].."?r="..uri_args.r)
     else
-        return redirect(conf.portal_url)
+        return exec(conf["portal_path"])
     end
 end
 
@@ -896,6 +905,11 @@ end
 function redirect(url)
     ngx.log(ngx.NOTICE, "Redirect to: "..url)
     return ngx.redirect(url)
+end
+
+function exec(url)
+    ngx.log(ngx.NOTICE, "Internal redirect to: "..url)
+    return ngx.exec(url)
 end
 
 
