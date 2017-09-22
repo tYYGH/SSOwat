@@ -166,7 +166,7 @@ Array of regular expressions to be matched against URLS **and** URIs and their r
 
 #### logout
 
-Associative array; when logging out of SSOwat, any existing cookie that is found as a key of this array triggers the associated logout URL. This only works on `http[s]://[*.]portal_domaini/`, though. (**example**: `{ "dcxd": "https://example.org/dotclear/admin/index.php?logout=1" }`)
+Associative array; when logging out of SSOwat, any existing cookie that is found as a key of this array triggers the associated logout URL. This only works on `http[s]://[*.]portal_domain/`, though. (**example**: `{ "dcxd": "https://example.org/dotclear/admin/index.php?logout=1" }`)
 
 #### default_language
 

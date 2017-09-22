@@ -317,19 +317,16 @@ end
 --
 -- We want to serve specific portal assets right at the root of the domain.
 --
--- For example: `https://mydomain.org/ynhpanel.js` will serve the
--- `/yunohost/sso/assets/js/ynhpanel.js` file.
---
 
 if hlp.is_logged_in() then
     if string.match(req_data['request_uri'], "^/ynhpanel.js$") then
-        hlp.serve("/yunohost/sso/assets/js/ynhpanel.js")
+        hlp.serve(conf["portal_path"].."assets/js/ynhpanel.js")
     end
     if string.match(req_data['request_uri'], "^/ynhpanel.css$") then
-        hlp.serve("/yunohost/sso/assets/css/ynhpanel.css")
+        hlp.serve(conf["portal_path"].."assets/css/ynhpanel.css")
     end
     if string.match(req_data['request_uri'], "^/ynhpanel.json$") then
-        hlp.serve("/yunohost/sso/assets/js/ynhpanel.json")
+        hlp.serve(conf["portal_path"].."assets/js/ynhpanel.json")
     end
 
     -- If user has no access to this URL, redirect him to the portal
