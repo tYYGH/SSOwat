@@ -18,13 +18,21 @@
        "Name": "cn"
    },
    "users": {
+       "*": {
+          "allow": {
+             "example.com/myapp": "My App",
+             "example.com/myapp2": "My second App"
+          }
+       },
        "myuser": {
-          "example.com/myapp": "My App",
-          "example.com/myapp2": "My second App"
+          "deny": {
+             "example.com/myapp2": "My second App"
+          }
        },
        "myuser2": {
-          "example.org/myapp": "My other domain App",
-          "example.com/myapp2": "My second App"
+          "allow": {
+             "example.com/myadmin": "My admin App"
+          }
        }
    },
    "logout": {

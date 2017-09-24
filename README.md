@@ -162,7 +162,7 @@ Array of regular expressions to be matched against URLS **and** URIs and their r
 
 #### users
 
-2-level array containing usernames and their allowed URLs along with an App name (**example**: `{ "kload": { "kload.fr/myapp/": "My App" } }`)
+3-level array containing usernames and their ACL (allow/deny), each consisting of allowed URLs along with an App name; fake user “*” is for global ACL (**example**: `{ "*": { "allow": { "kload.fr/blog": "Blog" } }, "kload": { "allow": { "kload.fr/admin/": "Admin" } }, "visitor": { "deny": { "kload.fr/blog": "no access" } } }`)
 
 #### logout
 
