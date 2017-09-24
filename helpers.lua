@@ -250,17 +250,17 @@ function has_access(user, url)
         return true
     end
 
+    local apps = {}
+    fill_apps_for_user(apps, '*')
+    fill_apps_for_user(apps, user)
+
     -- Loop through user's ACLs and return if the URL is authorized.
-    for u, _ in pairs(conf["users"][user]) do
-
-        -- Replace the original domain by a local one if you are connected from
-        -- a non-global domain name.
-        if req_data["host"] == conf["local_portal_domain"] then
-            u = string.gsub(u, conf["original_portal_domain"], conf["local_portal_domain"])
+    for _, app in pairs(apps) do
+        if string.starts(url, string.sub(app.url, 1, -2)) then
+            return true
         end
-
-        if string.starts(url, string.sub(u, 1, -2)) then return true end
     end
+
     return false
 end
 
@@ -549,21 +549,13 @@ function get_data_for(view)
             app = {}
         }
 
-        local sorted_apps = {}
-
-        -- Add user's accessible URLs using the ACLs.
-        -- It is typically used to build the app list.
-        if conf["users"][user] then
-            for url, name in pairs(conf["users"][user]) do
-
-                if req_data["host"] == conf["local_portal_domain"] then
-                    url = string.gsub(url, conf["original_portal_domain"], conf["local_portal_domain"])
-                end
-                table.insert(sorted_apps, name)
-                table.sort(sorted_apps)
-                table.insert(data["app"], index_of(sorted_apps, name), { url = url, name = name })
+        fill_apps_for_user(data.app, '*')
+        fill_apps_for_user(data.app, user)
+        table.sort(data.app,
+            function (a1, a2)
+                return a1.name < a2.name
             end
-        end
+        )
     end
 
     -- Pass all the translated strings to the view (to use with t_<key>)
@@ -577,6 +569,30 @@ function get_data_for(view)
     data['flash_info'] = {flashs["info"]}
 
     return data
+end
+
+function fill_apps_for_user(app_array, user)
+    if not conf["users"][user] then
+        return
+    end
+
+    -- Add user's accessible URLs using the ACLs.
+    -- It is typically used to build the app list.
+    if conf["users"][user]["allow"] then
+        for url, name in pairs(conf["users"][user]["allow"]) do
+            if req_data["host"] == conf["local_portal_domain"] then
+                url = string.gsub(url, conf["original_portal_domain"], conf["local_portal_domain"])
+            end
+            app_array[#app_array + 1] = { url = url, name = name }
+        end
+    end
+    if conf["users"][user]["deny"] then
+        for k, app in pairs(app_array) do
+            if conf["users"][user]["deny"][app.url] then
+                app_array[k] = nil
+            end
+        end
+    end
 end
 
 -- this function is launched after a successful login
